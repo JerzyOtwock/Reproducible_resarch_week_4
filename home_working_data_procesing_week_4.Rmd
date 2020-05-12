@@ -1,18 +1,23 @@
 ---
-title: "hw_week4"
+title: "RepreducibleResearch - Week 4"
 author: "Me"
 date: "11 05 2020"
 output: html_document
 ---
 
-## Loading and preprocessing the data
 
- ```{r, echo = TRUE}
+
+## Data Processing
+1. Load packages and read storm data
+
+ ```{r, message = FALSE, warning = FALSE}
 pacman::p_load(tidyverse,lubridate)
+df <- readr::read_csv("repdata_data_StormData.csv.bz2")
+```
 
-df <- readr::read_csv("H:\\LITERATURA_i_POBRANE\\R_kurs\\Cursera R\\Reproducible_resarch_week_4\\repdata_data_StormData.csv.bz2")
-table(df$EVTYPE)
-unique(df$EVTYPE)
+2. Sum total number of fatalities by event type.  Note that we aggregate event types with small number of fatalities.
+
+ ```{r, echo = TRUE, warning = FALSE}
 
 df1 <- df %>% select(EVTYPE, FATALITIES, INJURIES) 
 
@@ -22,22 +27,23 @@ df_dead <- df1 %>%
     mutate(dead_or_injured = "dead") %>% 
     filter(total > 0)
 
-summary(df_dead) 
-
 df_dead_small <- df_dead %>% 
     filter(total < quantile(total, 0.75)) %>% 
     summarise(EVTYPE = "other" ,total = sum(total), dead_or_injured = "dead")
 
 df_dead_large <-  df_dead %>% filter(total >= quantile(total, 0.75))
-  
+```  
+
+2. Sum total number of injured by event type.  Again we aggregate event types with small number of injuries.
+
+ ```{r, echo = TRUE, warning = FALSE}
+
     
 df_injured <- df1 %>% 
     group_by(EVTYPE) %>%
     summarise(total = sum(INJURIES)) %>% 
     mutate(dead_or_injured = "injured") %>% 
     filter(total > 0)
-
-summary(df_injured) 
 
 df_injured_small <- df_injured %>% 
     filter(total < quantile(total, 0.75)) %>% 
@@ -46,10 +52,18 @@ df_injured_small <- df_injured %>%
 df_injured_large <-  df_injured %>% filter(total >= quantile(total, 0.75))
 
 
+
 df2 <- rbind(df_dead_small, df_dead_large, df_injured_small, df_injured_large)
 
 
 df2$EVTYPE <- factor(df2$EVTYPE , levels = unique(df2$EVTYPE))
+```
+
+## Results
+
+The graph below clearly shows that tornado is the most leathal storm type in the us between 1950 and 2011.  
+ 
+ ```{r, message = FALSE, warning = FALSE}
  
 ggplot(df2)+geom_col(aes(x=EVTYPE, y=total, fill= dead_or_injured), width = 2)+
         coord_cartesian(ylim = c(0, 100), xlim = c(0, 1500))+
@@ -58,12 +72,3 @@ ggplot(df2)+geom_col(aes(x=EVTYPE, y=total, fill= dead_or_injured), width = 2)+
 
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
