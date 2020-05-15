@@ -1,10 +1,19 @@
 ---
+<<<<<<< HEAD
 title: "RepreducibleResearch - Week 4"
 author: "Me"
 date: "12 05 2020"
 output:
   html_document: default
   pdf_document: default
+=======
+title: "Reproducible Research - Week 4"
+author: "Konrad Borys"
+date: "may/14/2020"
+output:
+  pdf_document: default
+  html_document: default
+>>>>>>> 02d8dcf1597412cb8445fe9efc3f6ba65406b088
 ---
 
 
@@ -13,64 +22,128 @@ output:
 1. Load packages and read storm data
 
  ```{r, message = FALSE, warning = FALSE}
-pacman::p_load(tidyverse,lubridate)
+pacman::p_load(tidyverse, gghighlight)
 df <- readr::read_csv("repdata_data_StormData.csv.bz2")
 ```
 
-2. Sum total number of fatalities by event type.  Note that we aggregate event types with small number of fatalities.
+2. Sum total number of fatalities by event type.  Note that we aggregate event types with small number of fatalities into Other.
 
  ```{r, echo = TRUE, warning = FALSE}
 
 df1 <- df %>% select(EVTYPE, FATALITIES, INJURIES) 
 
-df_dead <- df1 %>% 
+df_dead <- df1 %>% drop_na(FATALITIES) %>%
     group_by(EVTYPE) %>%
     summarise(total = sum(FATALITIES)) %>% 
-    mutate(dead_or_injured = "dead") %>% 
+    mutate(dead_or_injured = "Dead") %>% 
     filter(total > 0)
 
 df_dead_small <- df_dead %>% 
-    filter(total < quantile(total, 0.75)) %>% 
-    summarise(EVTYPE = "other" ,total = sum(total), dead_or_injured = "dead")
+    filter(total < quantile(total, 0.95)) %>% 
+    summarise(EVTYPE = "Other" ,total = sum(total), dead_or_injured = "Dead")
 
-df_dead_large <-  df_dead %>% filter(total >= quantile(total, 0.75))
+df_dead_large <-  df_dead %>% filter(total >= quantile(total, 0.95))
 ```  
 
-2. Sum total number of injured by event type.  Again we aggregate event types with small number of injuries.
+3. Sum total number of injured by event type.  We aggregate event types with small number of injuries.
 
  ```{r, echo = TRUE, warning = FALSE}
 
     
-df_injured <- df1 %>% 
+df_injured <- df1 %>% drop_na(INJURIES) %>%
     group_by(EVTYPE) %>%
     summarise(total = sum(INJURIES)) %>% 
-    mutate(dead_or_injured = "injured") %>% 
+    mutate(dead_or_injured = "Injured") %>% 
     filter(total > 0)
 
 df_injured_small <- df_injured %>% 
-    filter(total < quantile(total, 0.75)) %>% 
-    summarise(EVTYPE = "other" ,total = sum(total), dead_or_injured = "injured")
+    filter(total < quantile(total, 0.95)) %>% 
+    summarise(EVTYPE = "Other" ,total = sum(total), dead_or_injured = "Injured")
 
-df_injured_large <-  df_injured %>% filter(total >= quantile(total, 0.75))
+df_injured_large <-  df_injured %>% filter(total >= quantile(total, 0.95))
+```
 
-
+4. Combine dead and injured data frames.
+ ```{r, echo = TRUE, warning = FALSE}
 
 df2 <- rbind(df_dead_small, df_dead_large, df_injured_small, df_injured_large)
 
 
-df2$EVTYPE <- factor(df2$EVTYPE , levels = unique(df2$EVTYPE))
+df2$EVTYPE <- factor(df2$EVTYPE , levels=unique(as.character(df2$EVTYPE )) )
+df2 <- transform(df2, EVTYPE=reorder(EVTYPE, total) ) 
 ```
+
+5. Repeat the above for property and crop damages. 
+ ```{r, echo = TRUE, warning = FALSE}
+
+df3 <- df %>% select(EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) 
+
+df3 <- df3 %>%  mutate(exp_1 = case_when( PROPDMGEXP == "B" ~ 1e9, 
+                                          PROPDMGEXP == "M" ~ 1e6, 
+                                          PROPDMGEXP == "K" ~ 1e3,
+                                          TRUE ~ 1), 
+                       property_damage = PROPDMG * exp_1,
+                       exp_2 = case_when( CROPDMGEXP == "B" ~ 1e9, 
+                                          CROPDMGEXP == "M" ~ 1e6, 
+                                          CROPDMGEXP == "K" ~ 1e3,
+                                          TRUE ~ 1), 
+                       crop_damage = CROPDMG * exp_2) 
+
+
+df_property <- df3 %>% group_by(EVTYPE) %>%
+  summarise(total = sum(property_damage)) %>% 
+  mutate(property_or_crop = "Property Damage") %>% filter(total > 0)
+
+df_crop <- df3 %>% group_by(EVTYPE) %>%
+  summarise(total = sum(crop_damage)) %>% 
+  mutate(property_or_crop = "Crop Damage") %>% filter(total > 0)
+
+df_property_small <- df_property %>% 
+    filter(total < quantile(total, 0.95)) %>% 
+    summarise(EVTYPE = "Other" ,total = sum(total), property_or_crop = "Property Damage")
+
+df_property_large <-  df_property %>% filter(total >= quantile(total, 0.95))
+
+df_crop_small <- df_crop %>% 
+    filter(total < quantile(total, 0.95)) %>% 
+    summarise(EVTYPE = "Other" ,total = sum(total), property_or_crop = "Crop Damage")
+
+df_crop_large <-  df_crop %>% filter(total >= quantile(total, 0.95))
+ 
+df4 <- rbind(df_property_large, df_property_small, df_crop_large, df_crop_small)   
+
+df4$EVTYPE <- factor(df4$EVTYPE , levels=unique(as.character(df4$EVTYPE )) )
+df4 <- transform(df4, EVTYPE=reorder(EVTYPE, total) ) 
+```
+
 
 ## Results
 
-The graph below clearly shows that tornado is the most leathal storm type in the us between 1950 and 2011.  
+The graph below clearly shows that tornadoes were the most leathal storm type between 1950 and 2011.  
  
  ```{r, message = FALSE, warning = FALSE}
  
-ggplot(df2)+geom_col(aes(x=EVTYPE, y=total, fill= dead_or_injured), width = 2)+
+ggplot(df2)+geom_col(aes(x = EVTYPE, y = total, fill = dead_or_injured))+
         coord_cartesian(ylim = c(0, 100), xlim = c(0, 1500))+
-        coord_flip()
+        labs(title = 'Consequences of Weather Events')+
+        ylab('') +
+        xlab('') +
+        labs(fill = "") +
+        coord_flip() 
+    
+
+```
 
 
+Floods caused the most property damage. Crop damage was insignificant. 
+ 
+ ```{r, message = FALSE, warning = FALSE}
+ggplot(df4)+geom_col(aes(x=EVTYPE, y=total, fill= property_or_crop), width = 2)+
+        coord_cartesian(ylim = c(0, 100), xlim = c(0, 1500))+
+        labs(title = 'Consequences of Weather Events')+
+        ylab('') +
+        xlab('') +
+        labs(fill = "") +
+        coord_flip() 
 ```
 
