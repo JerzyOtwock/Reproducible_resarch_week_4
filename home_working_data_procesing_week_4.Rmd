@@ -1,22 +1,20 @@
 ---
-<<<<<<< HEAD
-title: "RepreducibleResearch - Week 4"
-author: "Me"
-date: "12 05 2020"
-output:
-  html_document: default
-  pdf_document: default
-=======
 title: "Reproducible Research - Week 4"
-author: "Konrad Borys"
+author: "Jerzy Kwiatkowski"
 date: "may/14/2020"
 output:
-  pdf_document: default
   html_document: default
->>>>>>> 02d8dcf1597412cb8445fe9efc3f6ba65406b088
+  pdf_document: default
 ---
 
+##  Synopsis 
 
+Severe weather events can cause both public health and economic problems for communities and municipalities. This project involves exploring the U.S. National Oceanic and Atmospheric Administration’s storm database. This database tracks major storms and weather events in the United States
+and includes fatalities, injuries, property and crop damage. The analysis addresses the following questions : 
+
+* which types of events are most harmful with respect to population health? 
+
+* which types of events have the greatest economic consequences? 
 
 ## Data Processing
 1. Load packages and read storm data
@@ -119,30 +117,25 @@ df4 <- transform(df4, EVTYPE=reorder(EVTYPE, total) )
 
 ## Results
 
-The graph below clearly shows that tornadoes were the most leathal storm type between 1950 and 2011.  
+The graph shows that tornadoes causes the largest number of fatalities and injuries.  
  
  ```{r, message = FALSE, warning = FALSE}
  
 ggplot(df2)+geom_col(aes(x = EVTYPE, y = total, fill = dead_or_injured))+
         coord_cartesian(ylim = c(0, 100), xlim = c(0, 1500))+
-        labs(title = 'Consequences of Weather Events')+
-        ylab('') +
-        xlab('') +
         labs(fill = "") +
-        coord_flip() 
-    
+        coord_flip() +
+        theme_classic()
+
 
 ```
 
 
-Floods caused the most property damage. Crop damage was insignificant. 
+Floods had the biggest impact on both property and crop.
  
  ```{r, message = FALSE, warning = FALSE}
 ggplot(df4)+geom_col(aes(x=EVTYPE, y=total, fill= property_or_crop), width = 2)+
         coord_cartesian(ylim = c(0, 100), xlim = c(0, 1500))+
-        labs(title = 'Consequences of Weather Events')+
-        ylab('') +
-        xlab('') +
         labs(fill = "") +
         coord_flip() 
 ```
